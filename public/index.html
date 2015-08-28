@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html ng-app="portal">
+<head>
+  <title>My Cloud Portal</title>
+  <script src="angular.js"></script>
+</head>
+<body ng-controller="myCtlr">
+
+  <div ng-hide="loggedIn">
+    <h3>My Cloud Portal</h3>
+    User Id:<br>
+    <input ng-model="userid" type="text"><br><br>
+    Password:<br>
+    <input ng-model="password" type="password"><br><br>
+    <button type="button" ng-click="login()">Login</buton>
+  </div>
+
+  <div ng-show="loggedIn">
+    Logged in user: {{userid}}<br><br>
+    <h2>My Virtual Machines</h2><br>
+    <i>Click on a VM below to get its details</i>
+    <ul>
+      <li ng-repeat="v in vms" ng-click="getVm(v.id)">{{v.name}}</li>
+    </ul>
+    <button ng-show="!adding" ng-click="adding = true">Create VM</button>
+    <div ng-show="adding">
+      Name: <input type="text" ng-model="cfg.name"><br>
+      vCPU: <input type="number" ng-model="cfg.vcpu"><br>
+      RAM MB: <input type="number" ng-model="cfg.ram"><br>
+      IP Address: <input type="text" ng-model="cfg.ip"><br>
+      Disk GB: <input type="number" ng-model="cfg.disk"><br><br>
+      <button ng-click="addVm(cfg)">Create VM</button>
+      <button ng-click="adding = false">Cancel</button>
+    </div>
+
+    <div ng-show="vm">
+      <hr>
+      <h2>{{vm.name}}</h2>
+      <hr>
+      vCPU: {{vm.vcpu}}<br>
+      RAM MB: {{vm.ram}}<br>
+      IP Address: {{vm.ip}}<br>
+      Disk GB: {{vm.disk}}<br><br>
+      <button ng-click="deleteVm(vm._id)">Delete</button>
+    </div>
+
+  </div>
+
+  <script>
+    var app = angular.module('portal', []);
+    app.controller('myCtlr', function ($scope, $http) {
+      $scope.loggedIn = false;
+      $scope.adding = false;
+      $scope.login = function () {
+        $http({
+          url: '/login',
+          headers: {
+            Authorization: 'Basic ' + btoa($scope.userid + ':' + $scope.password),
+            Accept: 'application/json'
+          }
+        }).then( function (response) {
+          //Success
+          $http.defaults.headers.common['Accept'] = 'application/json';
+          $http.defaults.headers.common['Content-Type'] = 'application/json';
+          $http.defaults.headers.common['Token'] = response.data.token;
+
+          //Show the app and hide the login area
+          $scope.loggedIn = true;
+          //Get all VMs
+          $http.get('/api/vms').then(function (response) {
+            $scope.vms = response.data;
+          });
+        }, function (error) {
+          //Fail
+          alert(error.data.error);
+        });
+      }
+      $scope.getVm = function (id) {
+        $http.get('/api/vm/' + id).then(function (response) {
+          $scope.vm = response.data;
+        });
+      }
+      $scope.deleteVm = function (id) {
+        $http.delete('/api/vm/' + id);
+        for (var i=0; i < $scope.vms.length; i++) {
+          if ($scope.vms[i].id == id) $scope.vms.splice(i, 1);
+          $scope.vm = null;
+        }
+      }
+      $scope.addVm = function (cfg) {
+        $http.post('/api/vms', cfg).then( function (response) {
+          alert('VM successfully created');
+          //Close the add display on screen
+          $scope.adding = false;
+          //Add new VM to UI locally (don't do refresh of list from API)
+          $scope.vms.push({name: cfg.name, id: response.data.id});
+        }, function (error) {
+          alert(error.data.error);
+        });
+      }
+
+    });
+  </script>
+</body>
+</html>
