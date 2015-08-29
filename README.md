@@ -1,6 +1,6 @@
-# A simple RESTapi server in NodeJS and web app to demonstrate modern app architecture
+## A simple RESTapi server in NodeJS and web app to demonstrate modern, single page, app architecture
 
-1 Install NodeJS and npm.
+1 Install NodeJS and npm. Then install NodeJS packages
 ```
 $ sudo npm install express body-parser nedb
 ```
